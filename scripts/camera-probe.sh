@@ -65,13 +65,21 @@ for dev in /sys/bus/i2c/devices/i2c-*:*; do
 	printf '%-20s driver=%-10s modalias=%s\n' "$hid" "${drv:-UNBOUND}" "${mod:-}" >>"$OUT"
 done
 
-sec "ACPI camera-emitter hints (unbound devices are candidates)"
-for dev in /sys/bus/i2c/devices/i2c-*; do
-	[ -e "$dev" ] || continue
-	[ -e "$dev/driver" ] && continue
-	case "$(basename "$dev")" in *-VCM) continue ;; esac
-	printf 'UNBOUND: %s modalias=%s\n' "$(basename "$dev")" "$(cat "$dev/modalias" 2>/dev/null)" >>"$OUT"
-done
+sec "IR flood emitter"
+# Illumination comes from the sensor's STROBE pad (patched ov7251 module,
+# see kernel-patches/): V4L2_CID_FLASH_STROBE_OE. The separate flood
+# emitter PMIC path (TPS68470/TPS61311, ACPI INT3481) is not exposed by
+# this BIOS. MSHW0125 is the Surface TCON (display), NOT the flash.
+if ls /sys/bus/acpi/devices/INT3481:* >/dev/null 2>&1; then
+	echo "INT3481 present - separate emitter controller exists" >>"$OUT"
+else
+	echo "No INT3481 ACPI device (MSHW0125 here = Surface TCON, display)." >>"$OUT"
+	echo "Illumination must come from the sensor STROBE pad (patched ov7251)." >>"$OUT"
+fi
+if [ -c /dev/v4l-subdev8 ]; then
+	v4l2-ctl -d /dev/v4l-subdev8 --list-ctrls 2>/dev/null | grep -i strobe \
+		| sed 's/^/strobe: /' >>"$OUT" || echo "strobe: no strobe control (unpatched module)" >>"$OUT"
+fi
 
 for m in /dev/media*; do
 	[ -c "$m" ] || continue

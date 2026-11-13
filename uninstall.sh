@@ -15,6 +15,9 @@ systemctl --user --machine="$REAL_USER@.host" stop howdy-camera-bridge.service 2
 rm -f "$REAL_HOME/.config/systemd/user/howdy-camera-bridge.service"
 systemctl --user --machine="$REAL_USER@.host" daemon-reload 2>/dev/null || true
 rm -f /usr/local/bin/howdy-camera-bridge.sh /etc/howdy-camera-bridge.conf
+rm -f /usr/local/bin/howdy-camera-ir-bridge.sh /usr/local/bin/howdy-camera-ir-setup.sh \
+	/usr/local/bin/howdy-camera-ir-stream.py
+rm -f /etc/sudoers.d/howdy-camera-ir-setup
 
 echo ">> Restoring /etc/pam.d/sudo from newest backup..."
 BAK=$(ls -1t /etc/pam.d/sudo.bak.* 2>/dev/null | head -1 || true)

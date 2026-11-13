@@ -120,8 +120,8 @@ PY
 		echo ">> restoring disabled link state"
 		media-ctl -d "$MEDIA" -l "\"$FULL\":0 -> \"ipu3-csi2 2\":0[0]"
 	fi
-	echo ">> note: the IR emitter is not controllable from userspace here"
-	echo "   (unbound ACPI device); frames may be dark without an external IR source."
+	echo ">> note: the IR flood emitter (TPS68470/TPS61311 = INT3481) is not"
+	echo "   exposed by this BIOS; frames rely on ambient IR."
 }
 
 # ------------------------------------------------------------ AF sweep test
