@@ -168,8 +168,8 @@ chmod 755 /usr/lib/security/howdy/cli /usr/lib/security/howdy/recorders \
 chmod 644 /usr/lib/security/howdy/config.ini /usr/lib/security/howdy/compare.py \
 	/usr/lib/security/howdy/snapshot.py \
 	/usr/lib/security/howdy/logo.png /usr/lib/security/howdy/recorders/*.py \
-	/usr/lib/security/howdy/cli/*.py /usr/lib/security/howdy/models/*.dat \
-	/usr/lib/security/howdy/dlib-data/*.dat
+	/usr/lib/security/howdy/cli/*.py 2>/dev/null || true
+chmod 644 /usr/lib/security/howdy/models/*.dat /usr/lib/security/howdy/dlib-data/*.dat 2>/dev/null || true
 chmod 1777 /usr/lib/security/howdy/snapshots
 # cli.py must stay executable: /usr/bin/howdy is a symlink to it, and a
 # non-executable target makes `sudo howdy` fail with "command not found"
@@ -234,9 +234,8 @@ cat <<'EOF'
 =======================================================================
 Installed. Next steps:
 
-  1. Enroll your face (look at the camera, good lighting):
-        sudo howdy add
-     (repeat 2-3x in different lighting for better match rates)
+  1. Enroll your face - see the mode-specific NOTE below
+     (IR: sudo howdy-enroll; RGB: sudo howdy add). Repeat 2-3x.
 
   2. Test:
         sudo -k && sudo -v
