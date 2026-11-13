@@ -1,0 +1,3 @@
+# Make the loopback device writable by the bridge (running as your user)
+# and readable by howdy's PAM child processes (running as root).
+KERNEL=="video20", SUBSYSTEM=="video4linux", MODE="0666"

@@ -1,0 +1,14 @@
+[Unit]
+Description=Howdy camera bridge (libcamera front cam -> v4l2loopback %h device)
+# Started/stopped on demand by howdy's PAM module (pam.py) - do NOT enable
+# at login if you want the camera to stay off between authentications.
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/howdy-camera-bridge.sh
+Restart=on-failure
+RestartSec=3
+Nice=10
+
+[Install]
+WantedBy=default.target
