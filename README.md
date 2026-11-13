@@ -78,6 +78,23 @@ The installer:
 sudo ./uninstall.sh        # restores all backups, removes unit + configs
 ```
 
+## Lock screen (after sleep)
+
+The Omarchy lock screen (`omarchy-shell lock`) validates against the PAM
+service `omarchy-lock-password`. `install.sh` wires the same Howdy line in
+there, so waking from sleep and typing-unlock first attempts a face check
+(camera on ~3 s, then off again) and falls back to the password.
+
+Notes:
+- Omarchy may rewrite `/etc/pam.d/omarchy-lock-password` on updates — if the
+  face check disappears after an update, re-run `sudo ./install.sh`.
+- **Very dark rooms**: dlib's HOG detector needs to actually *see* a face.
+  The installer raises `dark_threshold` to `90` so dim frames aren't skipped,
+  but if the sensor is starved (as on this test machine) the scan times out
+  and you fall back to the password after a few seconds. Tune `timeout` /
+  `certainty` in `sudo howdy config` to taste, or enroll extra models in the
+  lighting conditions you actually unlock in.
+
 ## Tuning
 
 Edit `/usr/lib/security/howdy/config.ini` (or `sudo howdy config`):
@@ -86,7 +103,7 @@ Edit `/usr/lib/security/howdy/config.ini` (or `sudo howdy config`):
 |-----|---------|-------|
 | `timeout` | 6 | seconds to scan before falling back to password |
 | `certainty` | 3.5 | lower = stricter matching |
-| `dark_threshold` | 50 | skip frames darker than this % |
+| `dark_threshold` | 90 | skip frames darker than this % (raised from 50 for low light) |
 | `no_confirmation` | false | set `true` for silent success |
 
 Add more models for different lighting: `sudo howdy add` (repeat).

@@ -20,6 +20,10 @@ echo ">> Restoring /etc/pam.d/sudo from newest backup..."
 BAK=$(ls -1t /etc/pam.d/sudo.bak.* 2>/dev/null | head -1 || true)
 [ -n "$BAK" ] && cp -a "$BAK" /etc/pam.d/sudo && echo "   restored $BAK"
 
+echo ">> Restoring /etc/pam.d/omarchy-lock-password from newest backup..."
+BAK=$(ls -1t /etc/pam.d/omarchy-lock-password.bak.* 2>/dev/null | head -1 || true)
+[ -n "$BAK" ] && cp -a "$BAK" /etc/pam.d/omarchy-lock-password && echo "   restored $BAK"
+
 echo ">> Restoring howdy config.ini from newest backup..."
 BAK=$(ls -1t /usr/lib/security/howdy/config.ini.bak.* 2>/dev/null | head -1 || true)
 [ -n "$BAK" ] && cp -a "$BAK" /usr/lib/security/howdy/config.ini && echo "   restored $BAK"

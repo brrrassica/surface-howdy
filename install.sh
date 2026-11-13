@@ -90,6 +90,26 @@ echo ">> Installing Python-3 PAM module (backup of previous version kept)..."
 cp -a /usr/lib/security/howdy/pam.py "/usr/lib/security/howdy/pam.py.bak.$TS"
 install -m644 "$REPO_DIR/howdy/pam.py" /usr/lib/security/howdy/pam.py
 
+# The lock screen (omarchy-shell) runs PAM as the *user*, so Howdy's
+# resources must be readable by non-root. dlib encodings are not
+# reversible to images.
+echo ">> Loosening Howdy file permissions for user-context PAM (lock screen)..."
+chmod 755 /usr/lib/security/howdy/cli /usr/lib/security/howdy/recorders \
+	/usr/lib/security/howdy/dlib-data /usr/lib/security/howdy/models \
+	/usr/lib/security/howdy/pam-config /usr/lib/security/howdy/snapshots
+chmod 644 /usr/lib/security/howdy/config.ini /usr/lib/security/howdy/compare.py \
+	/usr/lib/security/howdy/snapshot.py /usr/lib/security/howdy/cli.py \
+	/usr/lib/security/howdy/logo.png /usr/lib/security/howdy/recorders/*.py \
+	/usr/lib/security/howdy/cli/*.py /usr/lib/security/howdy/models/*.dat \
+	/usr/lib/security/howdy/dlib-data/*.dat
+chmod 1777 /usr/lib/security/howdy/snapshots
+rm -rf /usr/lib/security/howdy/__pycache__ /usr/lib/security/howdy/cli/__pycache__ \
+	/usr/lib/security/howdy/recorders/__pycache__
+
+# Low-light rooms: raise the dark-frame skip threshold so scans don't
+# discard every frame (was 50; 90 keeps only near-black frames filtered).
+sed -i 's|^dark_threshold = .*|dark_threshold = 90|' /usr/lib/security/howdy/config.ini
+
 echo ">> Pointing howdy at the loopback device..."
 cp -a /usr/lib/security/howdy/config.ini "/usr/lib/security/howdy/config.ini.bak.$TS"
 sed -i 's|^device_path = .*|device_path = /dev/video20|' /usr/lib/security/howdy/config.ini
@@ -114,6 +134,26 @@ p.write_text(new)
 PY
 fi
 
+# --------------------------------------------------------------- lock screen
+echo ">> Wiring Howdy into /etc/pam.d/omarchy-lock-password (screen unlock)..."
+cp -a /etc/pam.d/omarchy-lock-password "/etc/pam.d/omarchy-lock-password.bak.$TS"
+LOCK_LINE='auth       sufficient                  pam_python3.so /lib/security/howdy/pam.py'
+if ! grep -q 'howdy/pam.py' /etc/pam.d/omarchy-lock-password; then
+	python3 - "$LOCK_LINE" <<'PY'
+import sys
+from pathlib import Path
+line = sys.argv[1].replace('\\t', '\t')
+p = Path('/etc/pam.d/omarchy-lock-password')
+text = p.read_text()
+if text.startswith('#%PAM-1.0'):
+    parts = text.split('\n', 1)
+    new = parts[0] + '\n' + line + (parts[1] if len(parts) > 1 else '')
+else:
+    new = line + text
+p.write_text(new)
+PY
+fi
+
 cat <<'EOF'
 
 =======================================================================
@@ -125,9 +165,11 @@ Installed. Next steps:
 
   2. Test:
         sudo -k && sudo -v
+        Lock the screen (omarchy system lock) and unlock with your face.
 
   3. Recovery (if anything breaks, as root):
         cp -a /etc/pam.d/sudo.bak.* /etc/pam.d/sudo   # newest backup
+        cp -a /etc/pam.d/omarchy-lock-password.bak.* /etc/pam.d/omarchy-lock-password
 
 The camera is started only for the duration of each face check and
 stopped right after - it is not running in the background.
