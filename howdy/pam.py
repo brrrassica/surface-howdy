@@ -19,6 +19,7 @@ import os
 import glob
 import syslog
 import subprocess
+import pwd
 
 import configparser
 
@@ -101,8 +102,16 @@ def doAuth(pamh):
 		# Run compare as a python3 subprocess to circumvent python version
 		# and import issues. compare.py takes the username as argv[1] and
 		# parses no flags.
+		env = os.environ.copy()
+		env['PAMPY_SCRIPT'] = 'True'
+		# Per-user override config (dark_threshold etc.), if the user has one
+		try:
+			home = pwd.getpwnam(user).pw_dir
+			env['HOWDY_USER_CONFIG'] = os.path.join(home, '.config', 'howdy', 'config.ini')
+		except KeyError:
+			pass
 		status = subprocess.call(
-			["/usr/bin/python3", HOWDY_DIR + "/compare.py", user])
+			["/usr/bin/python3", HOWDY_DIR + "/compare.py", user], env=env)
 	finally:
 		# Always release the camera again
 		stop_bridge(user)

@@ -97,7 +97,19 @@ Notes:
 
 ## Tuning
 
-Edit `/usr/lib/security/howdy/config.ini` (or `sudo howdy config`):
+**Per-user settings** live in `~/.config/howdy/config.ini` — no root needed.
+Values override the system config for *your* face checks only (sudo + lock
+screen). The installer drops a starter file:
+
+```ini
+[video]
+dark_threshold = 90   # low-light rooms: don't discard dim frames (1-100)
+# certainty = 3.5     # matching strictness (lower = stricter)
+# timeout = 6         # seconds to scan before password fallback
+```
+
+System-wide settings remain in `/usr/lib/security/howdy/config.ini`
+(`sudo howdy config`):
 
 | key | default | notes |
 |-----|---------|-------|

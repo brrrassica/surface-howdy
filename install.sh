@@ -90,6 +90,19 @@ echo ">> Installing Python-3 PAM module (backup of previous version kept)..."
 cp -a /usr/lib/security/howdy/pam.py "/usr/lib/security/howdy/pam.py.bak.$TS"
 install -m644 "$REPO_DIR/howdy/pam.py" /usr/lib/security/howdy/pam.py
 
+# compare.py: add support for a per-user override config (HOWDY_USER_CONFIG)
+cp -a /usr/lib/security/howdy/compare.py "/usr/lib/security/howdy/compare.py.bak.$TS"
+install -m644 "$REPO_DIR/howdy/compare.py" /usr/lib/security/howdy/compare.py
+
+# Default per-user override file (the whole point: user-settable settings
+# like dark_threshold without touching root-owned files)
+if [ ! -f "$REAL_HOME/.config/howdy/config.ini" ]; then
+	install -d -m755 "$REAL_HOME/.config/howdy"
+	install -m644 "$REPO_DIR/howdy/user-config.example.ini" \
+		"$REAL_HOME/.config/howdy/config.ini"
+	chown -R "$REAL_USER":"$REAL_USER" "$REAL_HOME/.config/howdy"
+fi
+
 # The lock screen (omarchy-shell) runs PAM as the *user*, so Howdy's
 # resources must be readable by non-root. dlib encodings are not
 # reversible to images.
