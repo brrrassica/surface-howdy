@@ -14,6 +14,13 @@ import os
 import cv2
 import dlib
 
+# The OpenCV 5 "new graph engine" logs a warning for every YuNet
+# inference (targets unsupported); keep errors, drop the noise.
+try:
+	cv2.utils.logging.setLogLevel(cv2.utils.logging.LOG_LEVEL_ERROR)
+except Exception:
+	pass
+
 
 class YunetDetector:
 	is_color = True
