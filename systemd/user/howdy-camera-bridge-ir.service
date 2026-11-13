@@ -5,7 +5,7 @@ Description=Howdy camera bridge (ov7251 IR cam raw path -> v4l2loopback %h devic
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/howdy-camera-ir-bridge.sh
+ExecStart=/usr/local/bin/howdy-camera-bridge.sh
 Restart=on-failure
 RestartSec=3
 Nice=10
