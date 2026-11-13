@@ -111,11 +111,14 @@ chmod 755 /usr/lib/security/howdy/cli /usr/lib/security/howdy/recorders \
 	/usr/lib/security/howdy/dlib-data /usr/lib/security/howdy/models \
 	/usr/lib/security/howdy/pam-config /usr/lib/security/howdy/snapshots
 chmod 644 /usr/lib/security/howdy/config.ini /usr/lib/security/howdy/compare.py \
-	/usr/lib/security/howdy/snapshot.py /usr/lib/security/howdy/cli.py \
+	/usr/lib/security/howdy/snapshot.py \
 	/usr/lib/security/howdy/logo.png /usr/lib/security/howdy/recorders/*.py \
 	/usr/lib/security/howdy/cli/*.py /usr/lib/security/howdy/models/*.dat \
 	/usr/lib/security/howdy/dlib-data/*.dat
 chmod 1777 /usr/lib/security/howdy/snapshots
+# cli.py must stay executable: /usr/bin/howdy is a symlink to it, and a
+# non-executable target makes `sudo howdy` fail with "command not found"
+chmod 755 /usr/lib/security/howdy/cli.py
 rm -rf /usr/lib/security/howdy/__pycache__ /usr/lib/security/howdy/cli/__pycache__ \
 	/usr/lib/security/howdy/recorders/__pycache__
 
