@@ -135,6 +135,11 @@ chown -R "$REAL_USER":"$REAL_USER" "$REAL_HOME/.config/systemd/user"
 # Deliberately NOT enabled: pam.py starts/stops the unit on demand.
 systemctl --user --machine="$REAL_USER@.host" daemon-reload
 
+# Enrollment wrapper: `sudo howdy add` alone can't work because the PAM
+# sudo stack stops the bridge before the CLI captures. This script owns
+# the bridge lifetime for the duration of the enrollment.
+install -Dm755 "$REPO_DIR/bridge/howdy-enroll.sh" /usr/local/bin/howdy-enroll
+
 # --------------------------------------------------------- howdy pam module
 echo ">> Installing Python-3 PAM module (backup of previous version kept)..."
 cp -a /usr/lib/security/howdy/pam.py "/usr/lib/security/howdy/pam.py.bak.$TS"
@@ -250,14 +255,12 @@ if [ "$CAM_MODE" = ir ]; then
 	cat <<'EOF'
 
 NOTE (IR mode):
-  - `sudo howdy add` reads /dev/video20 itself and does NOT start the
-    bridge. Start it manually first, then enroll:
-        systemctl --user start howdy-camera-bridge
-        sudo howdy add          # repeat 2-3x, varied distance
-        systemctl --user stop howdy-camera-bridge
+  - Do NOT use plain `sudo howdy add` - the PAM sudo stack stops the
+    camera bridge before the CLI can capture. Use the wrapper instead:
+        sudo howdy-enroll        # repeat 2-3x, varied distance
   - If your session predates the install, the video-group membership
     added above needs a re-login to take effect.
   - RGB models may match poorly on IR frames: re-enroll fresh models
-    for IR (howdy clear, then howdy add).
+    for IR (sudo howdy clear, then sudo howdy-enroll).
 EOF
 fi
