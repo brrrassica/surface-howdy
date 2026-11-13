@@ -38,17 +38,20 @@ pacman -Q gst-plugins-good &>/dev/null || pacman -S --noconfirm --needed gst-plu
 
 # ------------------------------------------------- detect the front camera
 echo ">> Detecting libcamera front camera..."
-CAM_PATH=$(gst-device-monitor-1.0 Video/Source 2>/dev/null | awk '
-	/Device found/      { name=""; loc=""; path="" }
-	/name[[:space:]]*:/ { name=$0 }
-	/api.libcamera.location = front/ { loc=1 }
-	/object.path = libcamera:/ { path=$0 }
-	/^$/ { if (loc && path != "") { sub(/.*libcamera:/, "", path); print path; exit } }
-')
+# cam -l output:
+#   1: Internal back camera (\_SB_.PCI0.I2C3.CAMR)
+#   2: Internal front camera (\_SB_.PCI0.I2C2.CAMF)
+# Extract the ID inside the parentheses of the front camera line.
+CAM_PATH=$(cam -l 2>/dev/null | awk '
+	/Internal front camera/ {
+		match($0, /\(.+\)/)
+		print substr($0, RSTART+1, RLENGTH-2)
+		exit
+	}')
 if [ -z "$CAM_PATH" ]; then
 	echo "Could not auto-detect the front camera. Available cameras:"
 	cam -l 2>/dev/null || true
-	read -r -p "Enter the front camera libcamera path (e.g. \\_SB_.PCI0.I2C2.CAMF): " CAM_PATH
+	read -r -p "Enter the front camera libcamera ID from the list above (e.g. \\_SB_.PCI0.I2C2.CAMF, NOT the leading number): " CAM_PATH
 fi
 # gst-launch property syntax eats one level of backslashes -> double them
 CAM_ESC=$(printf '%s' "$CAM_PATH" | sed 's/\\/\\\\/g')
