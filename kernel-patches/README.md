@@ -12,16 +12,23 @@ so the camera sees only ambient IR.
 
 Applied patches (backported to the running 7.2.15-arch1-1-surface kernel):
 
-1. In-range PLL1 dividers for the 319.2 MHz link (0x30B4=0x04, 0x30B1=0x01)
+1. In-range PLL1 dividers for the 319.2 MHz link (locally tuned:
+   pre-div=0x01, div=0x04 - both this and the upstream variant stream
+   cleanly on this unit; this is what the installed module is built from)
 2. Link frequency index fix
 7. Common registers moved into the global init table
-8. `V4L2_CID_FLASH_STROBE_OE` control: STROBE pad output enable, alternate
-   frame pattern (0xAA), pulse span follows exposure (52..776 lines, <=45%
-   duty). Lit/dark frames alternate - Howdy's compare discards the dark
-   ones via dark_threshold.
+8. `V4L2_CID_FLASH_STROBE_OE` control: STROBE pad output enable, pulse
+   span follows exposure (52..776 lines, <=45% duty).
 
 Local adaptations for the 7.2.y base: `PERCENT` macro defined locally,
-the strobe control registered in this kernel's control-handler layout.
+the strobe control registered in this kernel's control-handler layout,
+and the frame pattern register written as 0xff (every frame lit) instead
+of the upstream 0xaa (alternating). With 0xaa the CIO2's capture rate
+does not track the sensor frame rate, so each captured frame averaged
+lit and dark periods into unusable marbled images; 0xff keeps every
+frame uniformly lit. Exposure must stay well below the 488-line frame
+(exposure=100 in the bridge setup) or the strobe span straddles the
+frame boundary and corrupts the lit frames.
 
 ## Build and install (repeat after every kernel update)
 
@@ -33,7 +40,8 @@ Then reload the module (or reboot):
     sudo modprobe -r ov7251 && sudo modprobe ov7251
 
 Verify: `v4l2-ctl -d /dev/v4l-subdev8 --list-ctrls | grep strobe`
-(and with the strobe enabled, roughly every other captured frame is lit).
+(and with the strobe enabled, every captured frame is lit - the setup
+helper sets exposure=100 so faces are visible in the dark).
 
 ## Note
 
