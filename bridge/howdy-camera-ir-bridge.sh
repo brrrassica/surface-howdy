@@ -14,7 +14,21 @@ STREAM=/usr/local/bin/howdy-camera-ir-stream.py
 CAP=/dev/video12
 LOOP=/dev/video20
 
-sudo -n "$SETUP" on || exit 1
+# Setup can transiently fail (EBUSY while a previous run's cleanup
+# still holds the device): retry a few times before giving up.
+ok=0
+for _ in 1 2 3 4 5; do
+	if sudo -n "$SETUP" on; then
+		ok=1
+		break
+	fi
+	sleep 1
+done
+if [ "$ok" != 1 ]; then
+	echo "bridge: setup on failed" >> /tmp/howdy-bridge.log
+	exit 1
+fi
+echo "bridge: started $$ $(date +%T)" >> /tmp/howdy-bridge.log
 
 FIFO=$(mktemp -u /tmp/howdy-ir.XXXXXX.fifo)
 mkfifo "$FIFO"
@@ -24,6 +38,7 @@ cleanup() {
 	wait "$PRODUCER" 2>/dev/null
 	rm -f "$FIFO"
 	sudo -n "$SETUP" off 2>/dev/null
+	echo "bridge: cleaned up $$ $(date +%T)" >> /tmp/howdy-bridge.log
 }
 trap cleanup EXIT INT TERM
 

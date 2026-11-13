@@ -14,7 +14,10 @@ import sys
 import numpy as np
 
 W, H = 640, 480
-STRIDE = ((W * 10 + 7) // 8 + 31) // 32 * 32   # 832
+# The CIO2 pads rows: 640 px at 10 bits = 800 bytes of payload, but the
+# driver's bytes-per-line is 832 (800 rounded up to the next multiple of
+# 64+... measured from --get-fmt-video); frames are 832 * 480 = 399360.
+STRIDE = 832
 FRAME = STRIDE * H                             # 399360
 
 

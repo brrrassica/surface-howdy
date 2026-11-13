@@ -56,7 +56,10 @@
 #define OV7251_SC_REG5			0x3005
 #define OV7251_SC_REG5_STROBE_OE	BIT(3)
 #define OV7251_STROBE_FRAME_PATTERN	0x3b81
-#define OV7251_STROBE_FRAME_PATTERN_ALT	0xaa	/* alternate frames */
+/* Light every frame: the CIO2 capture rate does not match the sensor frame
+ * rate, so alternating (0xaa) pulses average lit+dark inside each captured
+ * frame and produce marbled images. 0xff keeps every frame uniformly lit. */
+#define OV7251_STROBE_FRAME_PATTERN_ALT	0xff	/* every frame */
 #define OV7251_STROBE_FRAME_PATTERN_DEF	0xa5
 #define OV7251_STROBE_FRAME_SPAN	0x3b8c
 #define OV7251_STROBE_FRAME_SPAN_DEF	0x1a
@@ -187,9 +190,9 @@ static const struct ov7251_pll1_cfg ov7251_pll1_cfg_19_2_mhz_240_mhz = {
 };
 
 static const struct ov7251_pll1_cfg ov7251_pll1_cfg_19_2_mhz_319_2_mhz = {
-	.pre_div = 0x04,
+	.pre_div = 0x01,
 	.mult = 0x85,
-	.div = 0x01,
+	.div = 0x04,
 	.pix_div = 0x0a,
 	.mipi_div = 0x05,
 };

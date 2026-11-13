@@ -59,8 +59,9 @@ def start_bridge(user):
 		except Exception:
 			pass
 		subprocess.run(['sleep', '0.3'], timeout=2)
-	# Give libcamera ~1.5s to emit its first usable frames
-	subprocess.run(['sleep', '1.5'], timeout=3)
+	# Give the bridge pipeline (producer -> unpacker -> ffmpeg -> loopback)
+	# time to emit its first stable frames
+	subprocess.run(['sleep', '3'], timeout=5)
 
 
 def stop_bridge(user):

@@ -149,6 +149,56 @@ install -m644 "$REPO_DIR/howdy/pam.py" /usr/lib/security/howdy/pam.py
 cp -a /usr/lib/security/howdy/compare.py "/usr/lib/security/howdy/compare.py.bak.$TS"
 install -m644 "$REPO_DIR/howdy/compare.py" /usr/lib/security/howdy/compare.py
 
+# YuNet face detector (fast DNN, works on IR frames where dlib fails)
+install -m644 "$REPO_DIR/howdy/yunet_detector.py" /usr/lib/security/howdy/yunet_detector.py
+if [ ! -f /usr/lib/security/howdy/dlib-data/yunet.onnx ]; then
+	curl -sL "https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx" \
+		-o /usr/lib/security/howdy/dlib-data/yunet.onnx \
+		&& chmod 644 /usr/lib/security/howdy/dlib-data/yunet.onnx \
+		&& echo ">> Downloaded YuNet face detector model" \
+		|| echo ">> WARNING: could not download yunet.onnx; falling back to dlib detectors" >&2
+fi
+chmod 644 /usr/lib/security/howdy/dlib-data/yunet.onnx 2>/dev/null || true
+
+# cli/add.py: same YuNet preference for enrollment (file not vendored, patch inline)
+ADD_PY=/usr/lib/security/howdy/cli/add.py
+if [ -f "$ADD_PY" ] && ! grep -q yunet_detector "$ADD_PY"; then
+	cp -a "$ADD_PY" "$ADD_PY.bak.$TS"
+	python3 - "$ADD_PY" <<'PY'
+import sys
+p = sys.argv[1]
+s = open(p).read()
+old = """use_cnn = config.getboolean("core", "use_cnn", fallback=False)
+if use_cnn:
+	face_detector = dlib.cnn_face_detection_model_v1(path + "/../dlib-data/mmod_human_face_detector.dat")
+else:
+	face_detector = dlib.get_frontal_face_detector()"""
+new = old + """
+
+# Prefer the fast YuNet (OpenCV DNN) detector when available: dlib HOG
+# never fires on IR frames and the CNN takes 20+ s per frame.
+try:
+	from yunet_detector import maybe_create
+	yunet = maybe_create(path + "/..")
+	if yunet is not None:
+		face_detector = yunet
+except Exception:
+	pass"""
+assert old in s, "add.py template changed"
+s = s.replace(old, new)
+old2 = "\tface_locations = face_detector(gsframe, 1)"
+new2 = """\t# YuNet wants the raw color frame (CLAHE breaks it on IR frames)
+\tif getattr(face_detector, "is_color", False):
+\t\tface_locations = face_detector(frame, 1)
+\telse:
+\t\tface_locations = face_detector(gsframe, 1)"""
+assert old2 in s, "add.py detection call changed"
+s = s.replace(old2, new2)
+open(p, 'w').write(s)
+PY
+	echo ">> Patched cli/add.py for YuNet detection"
+fi
+
 # Default per-user override file (the whole point: user-settable settings
 # like dark_threshold without touching root-owned files)
 if [ ! -f "$REAL_HOME/.config/howdy/config.ini" ]; then
@@ -178,9 +228,18 @@ rm -rf /usr/lib/security/howdy/__pycache__ /usr/lib/security/howdy/cli/__pycache
 	/usr/lib/security/howdy/recorders/__pycache__
 
 # Low-light handling depends on the feed: RGB frames are bright but noisy
-# in dim rooms, IR frames (ambient-only, no emitter) are dark overall.
+# in dim rooms, IR strobe frames are well lit but the unilluminated
+# background stays dark (~40% of pixels), so a high threshold tolerates
+# that while still skipping genuinely unlit frames.
 if [ "$CAM_MODE" = ir ]; then
-	sed -i 's|^dark_threshold = .*|dark_threshold = 5|' /usr/lib/security/howdy/config.ini
+	sed -i 's|^dark_threshold = .*|dark_threshold = 60|' /usr/lib/security/howdy/config.ini
+	# dlib encodings on noisy IR frames (5-landmark predictor) have
+	# intra-person distances around 0.5; the default 3.5 (0.35) can
+	# never match. 7.0 still leaves impostor distances (0.75+) out.
+	sed -i 's|^certainty = .*|certainty = 7.0|' /usr/lib/security/howdy/config.ini
+	# The bridge pipeline needs a few seconds to warm up after the
+	# on-demand start, so give the scan more than the default 6s.
+	sed -i 's|^timeout = .*|timeout = 10|' /usr/lib/security/howdy/config.ini
 else
 	sed -i 's|^dark_threshold = .*|dark_threshold = 90|' /usr/lib/security/howdy/config.ini
 fi

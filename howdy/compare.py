@@ -41,6 +41,17 @@ def init_detector(lock):
 	else:
 		face_detector = dlib.get_frontal_face_detector()
 
+	# Prefer the fast YuNet (OpenCV DNN) detector when its model is
+	# available: dlib HOG never fires on IR frames and the CNN takes
+	# 20+ s per frame on this hardware.
+	try:
+		from yunet_detector import maybe_create
+		yunet = maybe_create(PATH)
+		if yunet is not None:
+			face_detector = yunet
+	except Exception:
+		pass
+
 	# Start the others regardless
 	pose_predictor = dlib.shape_predictor(PATH + "/dlib-data/shape_predictor_5_face_landmarks.dat")
 	face_encoder = dlib.face_recognition_model_v1(PATH + "/dlib-data/dlib_face_recognition_resnet_model_v1.dat")
@@ -226,7 +237,11 @@ while True:
 
 	# Get all faces from that frame as encodings
 	# Upsamples 1 time
-	face_locations = face_detector(gsframe, 1)
+	# YuNet wants the raw color frame (CLAHE breaks it on IR frames)
+	if getattr(face_detector, "is_color", False):
+		face_locations = face_detector(frame, 1)
+	else:
+		face_locations = face_detector(gsframe, 1)
 
 	# Loop through each face
 	for fl in face_locations:
