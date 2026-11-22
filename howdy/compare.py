@@ -14,6 +14,7 @@ import sys
 import os
 import json
 import configparser
+import pwd
 import dlib
 import cv2
 import datetime
@@ -103,11 +104,15 @@ face_encoder = None
 
 # Try to load the face model from the models folder
 try:
-	models = json.load(open(PATH + "/models/" + user + ".dat"))
+	with open(PATH + "/models/" + user + ".dat") as model_file:
+		models = json.load(model_file)
 
 	for model in models:
 		encodings += model["data"]
 except FileNotFoundError:
+	sys.exit(10)
+except Exception as err:
+	print("Invalid face model for user {}: {}".format(user, err))
 	sys.exit(10)
 
 # Check if the file contains a model
@@ -118,10 +123,36 @@ if len(models) < 1:
 config = configparser.ConfigParser()
 config.read(PATH + "/config.ini")
 # Per-user override (e.g. low-light dark_threshold), set by the PAM module
-# to the authenticating user's ~/.config/howdy/config.ini
+# to the authenticating user's ~/.config/howdy/config.ini.
+# Only allow a small set of safe keys to prevent weakening authentication.
 _user_cfg = os.environ.get("HOWDY_USER_CONFIG")
 if _user_cfg:
-    config.read(_user_cfg)
+	SAFE_USER_CONFIG_KEYS = {
+		("video", "dark_threshold"),
+	}
+	if os.path.islink(_user_cfg):
+		print("Ignoring user config {}: user config is a symlink".format(_user_cfg))
+	elif os.path.isfile(_user_cfg):
+		try:
+			st = os.stat(_user_cfg)
+			allowed_uids = {0}
+			try:
+				allowed_uids.add(pwd.getpwnam(user).pw_uid)
+			except KeyError:
+				pass
+			if st.st_uid not in allowed_uids:
+				raise ValueError("user config has unsafe owner")
+
+			user_config = configparser.ConfigParser()
+			user_config.read(_user_cfg)
+			for section in user_config.sections():
+				for key, value in user_config.items(section):
+					if (section.lower(), key.lower()) in SAFE_USER_CONFIG_KEYS:
+						if not config.has_section(section):
+							config.add_section(section)
+						config.set(section, key, value)
+		except Exception as err:
+			print("Ignoring user config {}: {}".format(_user_cfg, err))
 
 # Get all config values needed
 use_cnn = config.getboolean("core", "use_cnn", fallback=False)
