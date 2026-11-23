@@ -8,7 +8,9 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 REAL_USER="${SUDO_USER:-$(id -un 1000 2>/dev/null || echo '')}"
+[ -n "$REAL_USER" ] || { echo "Cannot determine invoking user (SUDO_USER)." >&2; exit 1; }
 REAL_HOME=$(getent passwd "$REAL_USER" | cut -d: -f6)
+[ -n "$REAL_HOME" ] || { echo "Cannot determine home directory for user: $REAL_USER" >&2; exit 1; }
 
 echo ">> Stopping and removing the user bridge unit..."
 systemctl --user --machine="$REAL_USER@.host" stop howdy-camera-bridge.service 2>/dev/null || true
@@ -17,6 +19,7 @@ systemctl --user --machine="$REAL_USER@.host" daemon-reload 2>/dev/null || true
 rm -f /usr/local/bin/howdy-camera-bridge.sh /etc/howdy-camera-bridge.conf
 rm -f /usr/local/bin/howdy-camera-ir-bridge.sh /usr/local/bin/howdy-camera-ir-setup.sh \
 	/usr/local/bin/howdy-camera-ir-stream.py
+rm -f /usr/local/bin/howdy-enroll
 rm -f /etc/sudoers.d/howdy-camera-ir-setup
 
 echo ">> Restoring /etc/pam.d/sudo from newest backup..."
