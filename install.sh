@@ -106,9 +106,10 @@ if [ "$CAM_MODE" = ir ]; then
 	install -Dm755 "$REPO_DIR/bridge/howdy-camera-ir-setup.sh" /usr/local/bin/howdy-camera-ir-setup.sh
 	install -Dm755 "$REPO_DIR/bridge/howdy-camera-ir-stream.py" /usr/local/bin/howdy-camera-ir-stream.py
 	# The user-unit bridge needs to run the root setup helper without a
-	# password prompt (PAM can't interact). Rule is limited to this script.
+	# password prompt (PAM can't interact). Rule is limited to this script
+	# and the installing user.
 	install -d -m755 /etc/sudoers.d
-	echo 'ALL ALL=(root) NOPASSWD: /usr/local/bin/howdy-camera-ir-setup.sh' \
+	printf '%s ALL=(root) NOPASSWD: /usr/local/bin/howdy-camera-ir-setup.sh\n' "$REAL_USER" \
 		> /etc/sudoers.d/howdy-camera-ir-setup
 	chmod 440 /etc/sudoers.d/howdy-camera-ir-setup
 	visudo -c -f /etc/sudoers.d/howdy-camera-ir-setup || {

@@ -45,7 +45,7 @@ what you get:
 | Illumination | sensor's own **STROBE pad** drives the 850 nm flood emitter (patched `ov7251` kernel module) — works in **complete darkness** | ambient light only | ambient light only |
 | Low-light behavior | unaffected; every frame is lit | dlib/YuNet can miss faces in dim rooms → password fallback | same, plus worse framing |
 | Spoof resistance | better: a printed photo looks dark/noisy to an IR flood | weaker: ordinary visible-light photo can work | weaker |
-| Extra requirements | `kernel-patches/` module rebuild **after every kernel update**; sudoers `NOPASSWD` rule for the one root helper script; user in `video` group | none beyond the base deps | none |
+| Extra requirements | `kernel-patches/` module rebuild **after every kernel update**; sudoers `NOPASSWD` rule for the installing user and the one root helper script; user in `video` group | none beyond the base deps | none |
 | Camera in libcamera? | no — the ov7251's CSI-2 link is disabled by default; the setup helper enables it on demand and turns it off again | yes (`\_SB_.PCI0.I2C2.CAMF`) | yes (`\_SB_.PCI0.I2C3.CAMR`) |
 | Notes | closest to Windows Hello | lighting-dependent accuracy | awkward angle while typing; has autofocus (irrelevant here) |
 
@@ -109,7 +109,7 @@ The installer:
 - writes `/etc/howdy-camera-bridge.conf` (`BRIDGE_MODE` + camera identity)
 - installs the loopback module options, udev rule, bridge script(s) and a
   **user** systemd unit (`~/.config/systemd/user/howdy-camera-bridge.service`)
-- IR mode: installs the root setup helper + a sudoers `NOPASSWD` rule
+- IR mode: installs the root setup helper + a sudoers `NOPASSWD` rule for the installing user
   limited to exactly that script, and adds your user to the `video` group
 - installs the patched `pam.py` (backup kept) and the YuNet face detector
   (`yunet.onnx`, downloaded once — dlib's HOG never fires on IR frames)
@@ -176,7 +176,7 @@ sudo howdy list                               # enrolled models
 journalctl -t "[HOWDY]"                       # auth log
 sudo scripts/camera-probe.sh                  # full camera-stack inventory
 sudo scripts/camera-test.sh ir                # raw IR capture sanity check
-tail /tmp/howdy-bridge.log                    # IR bridge lifecycle log
+tail "${XDG_RUNTIME_DIR:-$HOME/.cache}/howdy-bridge.log"  # IR bridge lifecycle log
 ```
 
 The active mode lives in `/etc/howdy-camera-bridge.conf` (`BRIDGE_MODE=ir|rgb`
