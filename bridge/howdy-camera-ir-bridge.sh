@@ -13,6 +13,11 @@ SETUP=/usr/local/bin/howdy-camera-ir-setup.sh
 STREAM=/usr/local/bin/howdy-camera-ir-stream.py
 CAP=/dev/video12
 LOOP=/dev/video20
+LOG_DIR="${XDG_RUNTIME_DIR:-${HOME}/.cache}"
+LOG="$LOG_DIR/howdy-bridge.log"
+mkdir -p "$LOG_DIR"
+# Refuse to write through a pre-created symlink in a shared location.
+[ -L "$LOG" ] && rm -f "$LOG"
 
 # Setup can transiently fail (EBUSY while a previous run's cleanup
 # still holds the device): retry a few times before giving up.
@@ -25,10 +30,10 @@ for _ in 1 2 3 4 5; do
 	sleep 1
 done
 if [ "$ok" != 1 ]; then
-	echo "bridge: setup on failed" >> /tmp/howdy-bridge.log
+	echo "bridge: setup on failed" >> "$LOG"
 	exit 1
 fi
-echo "bridge: started $$ $(date +%T)" >> /tmp/howdy-bridge.log
+echo "bridge: started $$ $(date +%T)" >> "$LOG"
 
 FIFO=$(mktemp -u /tmp/howdy-ir.XXXXXX.fifo)
 mkfifo "$FIFO"
@@ -38,7 +43,7 @@ cleanup() {
 	wait "$PRODUCER" 2>/dev/null
 	rm -f "$FIFO"
 	sudo -n "$SETUP" off 2>/dev/null
-	echo "bridge: cleaned up $$ $(date +%T)" >> /tmp/howdy-bridge.log
+	echo "bridge: cleaned up $$ $(date +%T)" >> "$LOG"
 }
 trap cleanup EXIT INT TERM
 
