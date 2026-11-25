@@ -276,7 +276,8 @@ while True:
 
 	# Loop through each face
 	for fl in face_locations:
-		if use_cnn:
+		# CNN mmod detections wrap the rectangle in .rect; YuNet/HOG return dlib.rectangle directly
+		if hasattr(fl, "rect"):
 			fl = fl.rect
 
 		# Fetch the faces in the image
