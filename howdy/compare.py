@@ -113,7 +113,7 @@ except FileNotFoundError:
 	sys.exit(10)
 except Exception as err:
 	print("Invalid face model for user {}: {}".format(user, err))
-	sys.exit(10)
+	sys.exit(14)
 
 # Check if the file contains a model
 if len(models) < 1:

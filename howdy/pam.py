@@ -126,6 +126,15 @@ def doAuth(pamh):
 		syslog.closelog()
 		return pamh.PAM_USER_UNKNOWN
 
+	# Status 14 means the face model exists but could not be read/parsed
+	elif status == 14:
+		if not config.getboolean("core", "suppress_unknown"):
+			pamh.conversation(pamh.Message(pamh.PAM_ERROR_MSG, "Corrupt face model, please run: sudo howdy add"))
+
+		syslog.syslog(syslog.LOG_ERR, "Failure, corrupt face model for user " + user)
+		syslog.closelog()
+		return pamh.PAM_SYSTEM_ERR
+
 	# Status 11 means we exceeded the maximum retry count
 	elif status == 11:
 		pamh.conversation(pamh.Message(pamh.PAM_ERROR_MSG, "Face detection timeout reached"))
