@@ -38,9 +38,12 @@ echo "bridge: started $$ $(date +%T)" >> "$LOG"
 FIFO=$(mktemp -u /tmp/howdy-ir.XXXXXX.fifo)
 mkfifo "$FIFO"
 
+PRODUCER=""
 cleanup() {
-	kill "$PRODUCER" 2>/dev/null
-	wait "$PRODUCER" 2>/dev/null
+	[ -n "$PRODUCER" ] && {
+		kill "$PRODUCER" 2>/dev/null
+		wait "$PRODUCER" 2>/dev/null
+	}
 	rm -f "$FIFO"
 	sudo -n "$SETUP" off 2>/dev/null
 	echo "bridge: cleaned up $$ $(date +%T)" >> "$LOG"
