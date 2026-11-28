@@ -26,8 +26,10 @@ def unpack(frame):
 	ng = STRIDE // 32
 	bits = np.unpackbits(arr, bitorder='little').reshape(H, ng, 256)
 	bits = bits[:, :, :250].reshape(H, ng * 25, 10)[:, :W]
-	y = (bits * (1 << np.arange(10, dtype=np.uint16))).sum(axis=2).astype(
-		np.uint8)
+	# 10-bit -> 8-bit: shift right to scale down instead of truncating to
+	# the low 8 bits (which would wrap mid-grey values to near-black).
+	y = ((bits * (1 << np.arange(10, dtype=np.uint16))).sum(axis=2) >> 2
+		).astype(np.uint8)
 	# NV12: Y plane followed by interleaved U/V; neutral chroma (0x80)
 	uv = np.full(W * H // 2, 128, np.uint8)
 	return y.tobytes() + uv.tobytes()

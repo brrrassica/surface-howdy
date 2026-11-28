@@ -198,12 +198,8 @@ height = video_capture.internal.get(cv2.CAP_PROP_FRAME_HEIGHT) or 1
 # Calculate the amount the image has to shrink
 scaling_factor = (max_height / height) or 1
 
-# Fetch config settings out of the loop
-timeout = config.getint("video", "timeout")
-dark_threshold = config.getfloat("video", "dark_threshold")
-end_report = config.getboolean("debug", "end_report")
-
-# Start the read loop
+# Start the read loop (timeout, dark_threshold and end_report were already
+# read with fallbacks above; do not re-read without fallbacks here)
 frames = 0
 valid_frames = 0
 timings["fr"] = time.time()
