@@ -39,7 +39,10 @@ FIFO=$(mktemp -u /tmp/howdy-ir.XXXXXX.fifo)
 mkfifo "$FIFO"
 
 PRODUCER=""
+
 cleanup() {
+	# The trap is installed before PRODUCER is assigned; guard against an
+	# unbound variable under set -u for early exits/signals.
 	[ -n "$PRODUCER" ] && {
 		kill "$PRODUCER" 2>/dev/null
 		wait "$PRODUCER" 2>/dev/null
